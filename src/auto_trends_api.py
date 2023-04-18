@@ -273,6 +273,66 @@ def disp_image():
             return 'image deleted\n'
         else:
             return 'database is empty, nothing to flush\n'
+@app.route('/vehicleType_mpg_plot', methods=['GET'])
+def showPlot():
+    """
+    This function downloads an image of a plot that compares a vehicles type to its fuel efficiency from the year 2021
+    Args:
+        N/A
+    Returns:
+        Returns a plot of the 2021 MPG vs car type.
+    """
+    if request.method == 'POST':
+        if len(rd.keys()) == 0:
+            return 'No data in db. Post data to get info\n'
+        else:
+            x = []
+            y = []    
+
+            allYears = []
+            for key in rd.keys():
+                carDict = rd.hgetall(key)
+                allYears.append(carDict['Model Year'])
+
+            if allYears == '2021':
+                year = float(allYears)
+                mpg = rd.hget(key, 'Real-World MPG')
+                carType = rd.hget(key, 'Vehicle Type')
+                if mpg != '-':
+                    x.append(carType)
+                    y.append(float(mpg))
+                    
+            plt.bar(x, y, color = 'g', width = 0.72, label = "MPG")
+            plt.xlabel('Vehicle Type')
+            plt.ylabel('MPG')
+            plt.title('2021: MPG vs Vehicle Type')
+            plt.legend()
+            plt.savefig('./data/2021_MPGvType.png')
+            file_bytes = open('./data/2021_MPGvType.png', 'rb').read()
+            # set the file bytes as a key in Redis
+            rd1.set('plot', file_bytes)
+            if len(file_bytes) == 0:
+                return 'No data in db. Post data to get info\n'
+            else:
+                return 'Plot is loaded.'
+
+    elif request.method == 'GET':
+        if redis.exists('plot'):
+            path = './data/2021_MPGvType.png'
+            with open(path, 'wb') as f:
+            #get the image based on the 'plot' and write that binary stream to the
+            #file path
+                f.write(rd1.get('plot'))
+            return send_file(path, mimetype='image/png', as_attachment=True)
+        else: 
+            return 'Plot not found\n'
+    
+    elif request.method == 'DELETE':
+        if rd1.exists('plot'):
+            rd1.flushdb()
+            return 'Plot has been deleted\n'
+        else:
+            return 'The method you tried does not work. DB already empty\n'
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
