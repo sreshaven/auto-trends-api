@@ -7,7 +7,8 @@ RUN pip install numpy
 RUN pip install redis==4.5.4
 RUN pip install hotqueue==0.2.8
 
-ADD ./auto_trends_data.csv /auto_trends_data.csv
-ADD ./api.py /api.py
+ADD ./../src/jobs.py /jobs.py
+ADD ./../src/auto_trends_data.csv /auto_trends_data.csv
+ADD ./../src/api.py /api.py
 
 CMD ["python", "/api.py"]
