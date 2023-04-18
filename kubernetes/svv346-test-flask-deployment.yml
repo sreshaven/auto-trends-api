@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svv346-test-flask-deployment
+  labels:
+    app: svv346-test-flask-app
+    username: svv346
+    env: test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: svv346-test-flask-app
+  template:
+    metadata:
+      labels:
+        app: svv346-test-flask-app
+    spec:
+      containers:
+        - name: svv346-test-flask-app
+          imagePullPolicy: Always
+          image: sreshaven/auto_trends_api:hw08
+          env:
+          - name: REDIS_IP
+            value: 10.233.15.94
+          ports:
+          - name: http
+            containerPort: 5000

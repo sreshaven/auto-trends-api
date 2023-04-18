@@ -1,0 +1,15 @@
+---
+ apiVersion: v1
+ kind: PersistentVolumeClaim
+ metadata:
+   name: svv346-test-auto-data
+   labels:
+     username: svv346
+     env: test
+ spec:
+   accessModes:
+     - ReadWriteOnce
+   storageClassName: cinder-csi
+   resources:
+     requests:
+       storage: 1Gi

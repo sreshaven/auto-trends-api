@@ -1,0 +1,29 @@
+---
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+   name: svv346-test-redis-deployment
+   labels:
+     app: svv346-test-redis-app
+     username: svv346
+     env: test
+ spec:
+   replicas: 1
+   selector:
+     matchLabels:
+       app: svv346-test-redis-app
+   template:
+     metadata:
+       labels:
+         app: svv346-test-redis-app
+     spec:
+       containers:
+         - name: redis-app
+           image: redis:7
+           volumeMounts:
+           - name: svv346-test-auto-data
+             mountPath: "/data"
+       volumes:
+       - name: svv346-test-auto-data
+         persistentVolumeClaim:
+           claimName: svv346-test-auto-data
