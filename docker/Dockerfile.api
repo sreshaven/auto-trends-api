@@ -9,6 +9,6 @@ RUN pip install hotqueue==0.2.8
 
 ADD ./../src/jobs.py /jobs.py
 ADD ./../src/auto_trends_data.csv /auto_trends_data.csv
-ADD ./../src/api.py /api.py
+ADD ./../src/auto_trends_api.py /auto_trends_api.py
 
-CMD ["python", "/api.py"]
+CMD ["python", "/auto_trends_api.py"]
