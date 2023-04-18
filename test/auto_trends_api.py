@@ -5,11 +5,7 @@ import redis
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-import jobs
-
-rd = redis.StrictRedis(host = redis_ip, port = 6379, db = 0, decode_responses = True)
-rd2 = redis.StrictRedis(host = redis_ip, port = 6379, db = 1)
-q = HotQueue("queue", host = redis_ip, port = 6379, db = 2)
+from jobs import *
 
 app = Flask(__name__)
 
@@ -168,7 +164,7 @@ def manu_years_data(manufacturer: str, year: str) -> list:
             data_list.append(car)
     return data_list
 
-@app.route('/image', methods=['GET', 'POST', 'DELETE'])
+@app.route('/co2_year_plot', methods=['GET', 'POST', 'DELETE'])
 def image_func() -> bytes:
     """
     If method is POST, loads a simple plot of the auto trends data into redis and returns message
@@ -238,8 +234,7 @@ def disp_image():
         if output_list == []:
             return 'there is no data, cannot generate plot\n'
         else:
-            for item in list_of_dict:
-                key = f"{item['Manufacturer']}:{item['Model Year']}:{item['Vehicle Type']}"
+            for key in rd.keys():
                 yr = rd.hget(key,'Model Year')
                 if yr == '2021':
                     yr = float(yr)
