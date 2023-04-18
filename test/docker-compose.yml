@@ -1,0 +1,23 @@
+---
+version: "3"
+
+services:
+    redis-db:
+        image: redis:7
+        ports:
+            - 6379:6379
+        command: ["--save", "1", "1"]
+        volumes:
+            - ./data:/data
+        user: "1000:1000"
+    flask-app:
+        build:
+            context: ./
+            dockerfile: ./Dockerfile
+        depends_on:
+            - redis-db
+        image: sreshaven/auto_trends_api:final
+        ports:
+            - 5000:5000
+        environment:
+            - REDIS_IP=redis-db
