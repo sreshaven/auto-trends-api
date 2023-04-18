@@ -217,5 +217,62 @@ def image_func() -> bytes:
     else:
         return 'The method you tried does not work\n'
 
+
+@app.route('/weight_mpg_plot', methods=['GET', 'POST', 'DELETE'])
+def disp_image():
+    """
+    This function downloads an image of a plot that compares a vehicles weight to its fuel efficiency from the year 2021
+    Args: there are no arguments
+    Returns: send_file(path, mimetype='image/png', as_attachment=True) (png image): png image of plot downloaded to redis
+    """
+    if request.method == 'POST':
+        mpg_list=[]
+        weight_list=[]
+        output_list = []
+        for item in rd.keys():
+            output_list.append(rd.hgetall(item))
+        if output_list == []:
+            return 'there is no data, cannot generate plot\n'
+            exit()
+        else:
+            for item in list_of_dict:
+                key = f"{item['Manufacturer']}:{item['Model Year']}:{item['Vehicle Type']}"
+                yr = rd.hget(key,'Model Year')
+                if yr == '2021':
+                    yr = float(yr)
+                    mpg = rd.hget(key, 'Real-World MPG')
+                    if mpg != '-':
+                        mpg_list.append(float(mpg))
+                        weight = rd.hget(key, 'Weight (lbs)')
+                        weight_list.append(float(weight))
+            plt.scatter(weight_list,mpg_list)
+            plt.title('Vehicle Weight vs Fuel Economy in 2021')
+            plt.xlabel('Weight (lbs)')
+            plt.ylabel('Miles per Gallon')
+            plt.savefig('./weight_mpg_plt_2021.png')
+            file_bytes = open('./weight_mpg_plt_2021.png', 'rb').read()
+# set the file bytes as a key in Redis
+            rd1.set('plotimage', file_bytes)
+            return 'image has been loaded to redis\n'
+
+    elif request.method == 'GET':
+        #check if image is in database
+        # if so, return image
+        if rd1.exists('plotimage'):
+            path='./weight_mpg_plt_2021.png'
+            with open(path,'wb') as f:
+                f.write(rd1.get('plotimage'))
+            return send_file(path, mimetype='image/png', as_attachment=True)
+        else:
+            return 'image is not in database\n'
+
+    elif request.method == 'DELETE':
+        # delete image from redis
+        if rd1.exists('plotimage'):
+            rd1.flushdb()
+            return 'image deleted\n'
+        else:
+            return 'database is empty, nothing to flush\n'
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
