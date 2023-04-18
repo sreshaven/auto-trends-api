@@ -1,0 +1,12 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+    name: flasktest-service-nodeport
+spec:
+    type: NodePort
+    selector:
+        app: svv346-test-flask-app
+    ports:
+        - port: 5000
+          targetPort: 5000
