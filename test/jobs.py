@@ -49,6 +49,15 @@ def _queue_job(jid):
       """Add a job to the redis queue."""
       q.put(jid)
 
+def get_job_by_id(job_key):
+    """Get the job from the redis database"""
+    redis_return = rd3.hgetall(_generate_job_key(job_key))
+    mydict = {}
+    for keys in redis_return:
+        if keys != b'image':
+            mydict[keys.decode('utf-8')] = redis_return[keys].decode('utf-8')
+    return mydict
+
 def add_job(start, end, status="submitted"):
       """Add a job to the redis queue."""
       jid = _generate_jid()

@@ -5,7 +5,8 @@ import redis
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-from jobs import *
+import json
+from jobs import rd, rd2, rd3, add_job
 
 app = Flask(__name__)
 
@@ -19,7 +20,7 @@ def jobs_api():
           job = request.get_json(force=True)
       except Exception as e:
           return True, json.dumps({'status': "Error", 'message': 'Invalid JSON: {}.'.format(e)})
-      return json.dumps(jobs.add_job(job['start'], job['end']))
+      return json.dumps(add_job(job['start'], job['end']))
 
 @app.route('/data', methods=['POST','GET','DELETE'])
 def handle_data() -> list:
@@ -324,10 +325,10 @@ def showPlot(year):
 
 @app.route('/download/<jobid>', methods=['GET'])
 def download(jobid):
-    if rd3.exists(jobid) and 'image' in rd3.hgetall(jobid):
+    if rd3.exists('job.'+jobid) and b'image' in rd3.hgetall('job.'+jobid):
         path = './{jobid}.png'
         with open(path, 'wb') as f:
-            f.write(rd3.hget(jobid, 'image'))
+            f.write(rd3.hget('job.'+jobid, b'image'))
         return send_file(path, mimetype='image/png', as_attachment=True)
     else:
         return 'CO2 Emissions by Vehicle Type is not loaded in redis yet'
