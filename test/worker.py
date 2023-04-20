@@ -7,5 +7,6 @@ def execute_job(jid):
       Monitors the job to completion and updates the database accordingly.
     """
     jobs.update_job_status(jid, 'in progress')
+    # start the analysis
     time.sleep(15)
     jobs.update_job_status(jid, 'complete')
