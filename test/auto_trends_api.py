@@ -285,7 +285,6 @@ def showPlot(year):
         else:
             x = []
             y = []
-        
             for key in rd.keys():
                 carDict = rd.hgetall(key)
                 yr = carDict['Model Year']
@@ -322,6 +321,16 @@ def showPlot(year):
             return 'Plot has been deleted\n'
         else:
             return 'The method you tried does not work. DB already empty\n'
+
+@app.route('/download/<jobid>', methods=['GET'])
+def download(jobid):
+    if rd3.exists(jobid) and 'image' in rd3.hgetall(jobid):
+        path = './{jobid}.png'
+        with open(path, 'wb') as f:
+            f.write(rd3.hget(jobid, 'image'))
+        return send_file(path, mimetype='image/png', as_attachment=True)
+    else:
+        return 'CO2 Emissions by Vehicle Type is not loaded in redis yet'
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
