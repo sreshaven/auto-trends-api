@@ -216,13 +216,14 @@ def image_func() -> bytes:
         return 'The method you tried does not work\n'
 
 
-@app.route('/weight_mpg_plot', methods=['GET', 'POST', 'DELETE'])
-def disp_image():
+@app.route('/weight_mpg_plot/<year>', methods=['GET', 'POST', 'DELETE'])
+def disp_image(year):
     """
     This function downloads an image of a plot that compares a vehicles weight to its fuel efficiency from the year 2021
     Args: there are no arguments
     Returns: send_file(path, mimetype='image/png', as_attachment=True) (png image): png image of plot downloaded to redis
     """
+    years_list = get_years()
     if request.method == 'POST':
         mpg_list = []
         weight_list = []
@@ -234,7 +235,7 @@ def disp_image():
         else:
             for key in rd.keys():
                 yr = rd.hget(key,'Model Year')
-                if yr == '2021':
+                if yr in years_list and yr.isdigit() and int(yr) == year:
                     yr = float(yr)
                     mpg = rd.hget(key, 'Real-World MPG')
                     if mpg != '-':
@@ -245,8 +246,8 @@ def disp_image():
             plt.title('Vehicle Weight vs Fuel Economy in 2021')
             plt.xlabel('Weight (lbs)')
             plt.ylabel('Miles per Gallon')
-            plt.savefig('./weight_mpg_plt_2021.png')
-            file_bytes = open('./weight_mpg_plt_2021.png', 'rb').read()
+            plt.savefig('./weight_mpg_plt_year.png')
+            file_bytes = open('./weight_mpg_plt_year.png', 'rb').read()
             # set the file bytes as a key in Redis
             rd2.set('plotimage', file_bytes)
             return 'image has been loaded to redis\n'
@@ -254,7 +255,7 @@ def disp_image():
         # check if image is in database
         # if so, return image
         if rd2.exists('plotimage'):
-            path='./weight_mpg_plt_2021.png'
+            path='./weight_mpg_plt_year.png'
             with open(path,'wb') as f:
                 f.write(rd2.get('plotimage'))
             return send_file(path, mimetype='image/png', as_attachment=True)
@@ -268,8 +269,8 @@ def disp_image():
         else:
             return 'database is empty, nothing to flush\n'
 
-@app.route('/vehicleType_mpg_plot', methods=['POST','GET','DELETE'])
-def showPlot():
+@app.route('/vehicleType_mpg_plot/<year>', methods=['POST','GET','DELETE'])
+def showPlot(year):
     """
     This function downloads an image of a plot that compares a vehicles type to its fuel efficiency from the year 2021
     Args:
@@ -277,15 +278,18 @@ def showPlot():
     Returns:
         Returns a plot of the 2021 MPG vs car type.
     """
+    years_list = get_years()
     if request.method == 'POST':
         if len(rd.keys()) == 0:
             return 'No data in db. Post data to get info\n'
         else:
             x = []
             y = []
+        
             for key in rd.keys():
                 carDict = rd.hgetall(key)
-                if carDict['Model Year'] == '2021' and carDict['Manufacturer'] == 'All':
+                yr = carDict['Model Year']
+                if carDict['Manufacturer'] == 'All' and yr.isdigit() and yr in years_list and int(yr) == year:
                     mpg = carDict['Real-World MPG']
                     carType = carDict['Vehicle Type']
                     if mpg != '-':
