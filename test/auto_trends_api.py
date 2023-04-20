@@ -186,33 +186,31 @@ def image_func() -> bytes:
             co2 = []
             for car in cars_list:
                 if car['Vehicle Type'] == 'All':
-                    if car['Model Year'].isdigit():
+                    if car['Model Year'].isdigit() and 1975 <= int(car['Model Year']) <= 2021:
                         years.append(int(car['Model Year']))
-                    else:
-                        years.append(2022)
-                    co2.append(float(car['Real-World CO2 (g/mi)']))
+                        co2.append(float(car['Real-World CO2 (g/mi)']))
             plt.scatter(years, co2)
-            plt.title('Average Vehicle CO2 Emissions from 1975-2022')
+            plt.title('Average Vehicle CO2 Emissions from 1975-2021')
             plt.ylabel('Real-World CO2 (g/mi)')
             plt.xlabel('Year')
             plt.savefig('./co2_graph.png')
             plt.show()
             file_bytes = open('./co2_graph.png', 'rb').read()
-            rd2.set('image', file_bytes)
+            rd2.set('image0', file_bytes)
             return 'Auto Trends data image is loaded into Redis\n'
     elif request.method == 'GET':
-        if b'image' not in rd2.keys():
+        if b'image0' not in rd2.keys():
             return 'Image not found or has not been loaded yet\n'
         else:
             path = './getimage.png'
             with open(path, 'wb') as f:
-                f.write(rd2.get('image'))
+                f.write(rd2.get('image0'))
             return send_file(path, mimetype='image/png', as_attachment=True)
     elif request.method == 'DELETE':
-        if b'image' not in rd2.keys():
+        if b'image0' not in rd2.keys():
             return 'Image not found or has not been loaded yet\n'
         else:
-            rd2.delete('image')
+            rd2.delete('image0')
             return 'Auto Trends data image has been deleted from Redis\n'
     else:
         return 'The method you tried does not work\n'
@@ -265,7 +263,7 @@ def disp_image():
     elif request.method == 'DELETE':
         # delete image from redis
         if rd2.exists('plotimage'):
-            rd2.flushdb()
+            rd2.delete('plotimage')
             return 'image deleted\n'
         else:
             return 'database is empty, nothing to flush\n'
@@ -285,20 +283,14 @@ def showPlot():
         else:
             x = []
             y = []
-
-            allYears = []
             for key in rd.keys():
                 carDict = rd.hgetall(key)
-                allYears.append(carDict['Model Year'])
-
-            if allYears == '2021':
-                year = float(allYears)
-                mpg = rd.hget(key, 'Real-World MPG')
-                carType = rd.hget(key, 'Vehicle Type')
-                if mpg != '-':
-                    x.append(carType)
-                    y.append(float(mpg))
-
+                if carDict['Model Year'] == '2021' and carDict['Manufacturer'] == 'All':
+                    mpg = carDict['Real-World MPG']
+                    carType = carDict['Vehicle Type']
+                    if mpg != '-':
+                        x.append(carType)
+                        y.append(float(mpg))
             plt.bar(x, y, color = 'g', width = 0.72, label = "MPG")
             plt.xlabel('Vehicle Type')
             plt.ylabel('MPG')
@@ -316,16 +308,13 @@ def showPlot():
         if rd2.exists('plot'):
             path = './2021_MPGvType.png'
             with open(path, 'wb') as f:
-            #get the image based on the 'plot' and write that binary stream to the
-            #file path
                 f.write(rd2.get('plot'))
             return send_file(path, mimetype='image/png', as_attachment=True)
         else:
             return 'Plot not found\n'
-
     elif request.method == 'DELETE':
         if rd2.exists('plot'):
-            rd2.flushdb()
+            rd2.delete('plot')
             return 'Plot has been deleted\n'
         else:
             return 'The method you tried does not work. DB already empty\n'
