@@ -1,0 +1,12 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+    name: flaskprod-service-nodeport
+spec:
+    type: NodePort
+    selector:
+        app: autotrends-prod-flask-app
+    ports:
+        - port: 5000
+          targetPort: 5000

@@ -1,0 +1,15 @@
+---
+ apiVersion: v1
+ kind: PersistentVolumeClaim
+ metadata:
+   name: autotrends-prod-auto-data
+   labels:
+     username: svv346
+     env: prod
+ spec:
+   accessModes:
+     - ReadWriteOnce
+   storageClassName: cinder-csi
+   resources:
+     requests:
+       storage: 1Gi

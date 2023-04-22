@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autotrends-prod-flask-service
+  labels:
+    username: svv346
+    env: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: autotrends-prod-flask-app
+  ports:
+  - name: autotrends-prod-flask-app
+    port: 5000
+    targetPort: 5000
