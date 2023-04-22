@@ -231,7 +231,7 @@ def disp_image(year: str) -> bytes:
         else:
             years_list = get_years()
             if year not in years_list:
-                return 'Invalid input, please choose a valid year from 1975 to 2021'
+                return 'Invalid input, please choose a valid year from 1975 to 2021\n'
             for key in rd.keys():
                 yr = rd.hget(key, 'Model Year')
                 if yr.isdigit() and int(yr) == int(year):
@@ -287,10 +287,12 @@ def showPlot(year: str) -> bytes:
         else:
             x = []
             y = []
+            if year not in years_list:
+                return 'Invalid input. Please enter a valid year from 1975 to 2021\n'
             for key in rd.keys():
                 carDict = rd.hgetall(key)
                 yr = carDict['Model Year']
-                if carDict['Manufacturer'] == 'All' and yr.isdigit() and yr in years_list and int(yr) == year:
+                if carDict['Manufacturer'] == 'All' and yr.isdigit() and int(yr) == int(year):
                     mpg = carDict['Real-World MPG']
                     carType = carDict['Vehicle Type']
                     if mpg != '-':
@@ -299,17 +301,14 @@ def showPlot(year: str) -> bytes:
             plt.bar(x, y, color = 'g', width = 0.72, label = "MPG")
             plt.xlabel('Vehicle Type')
             plt.ylabel('MPG')
-            plt.title('2021: MPG vs Vehicle Type')
+            plt.title(year + ': MPG vs Vehicle Type')
             plt.legend()
             plt.savefig('./2021_MPGvType.png')
             plt.clf()
             file_bytes = open('./2021_MPGvType.png', 'rb').read()
             # set the file bytes as a key in Redis
             rd2.set('plot', file_bytes)
-            if len(file_bytes) == 0:
-                return 'No data in db. Post data to get info\n'
-            else:
-                return 'Plot is loaded.\n'
+            return 'Plot is loaded.\n'
     elif request.method == 'GET':
         if rd2.exists('plot'):
             path = './2021_MPGvType.png'
