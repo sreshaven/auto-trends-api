@@ -332,6 +332,46 @@ def download(jobid):
         return send_file(path, mimetype='image/png', as_attachment=True)
     else:
         return 'CO2 Emissions by Vehicle Type is not loaded in redis yet'
+@app.route('/help', methods=['GET'])
+def get_help():
+    """
+    Returns all the available routes to the user
+    Args: N/A
+    Output: string of all the available routes to curl
+    """
+    help_user = """Try the following routes: 
+            /help returns all the routes and their purpose
+            /data 
+                -X GET returns the entire data set (hundreds of dictionaries)
+                -X POST adds the data to the redis database
+                -X DELETE deletes all the data from the redis database
+            /years
+                returns a list of all the years recorded in the dataset
+            /years/<year>
+                returns a list of all the data from the specified year
+            /manufacturers
+                returns a list of the manufacturers currently in redis for the Auto Trends Database
+            /manufacturers/<manufacturer>
+                returns a list with all cars from that manufacturer if found in the Auto Trends database
+            /manufacturer/<manufacturer>/years
+                returns a list of the years where there is data for a specific manufacturer
+            /manufacturer/<manufacturer>/years/<year>
+                returns a list for the data for the specified manufacturer and year if found in the Auto Trends database route
+            /co2_year_plot
+                -X POST loads a plot of the total co2 emissions for a user specified range of years
+                -X GET  <some location>:<port> /co2_year_plot --output output.png returns a plot of total co2 emissions for a range of years to redis data base
+                -X DELETE deletes the image from the redis data base
+            /weight_mpg_plot/<year>
+                -X POST loads a plot of the weight vs fuel economy of every vehicle for a user specified year
+                -X GET <some location>:<port> /weight_mpg_plot/<year> --output output.png returns a plot of weight vs fuel economy to redis data base
+                -X DELETE deletes the image from the redis data base
+            /vehicleType_mpg_plot/<year>
+                -X POST loads a plot of the weight vs fuel economy of every vehicle for a user specified year
+                -X GET <some location>:<port>/vehicleType_mpg_plot/ <year> --output output.png returns a plot of weight vs fuel economy to redis data base
+                -X DELETE deletes the image from the redis data base
 
+            /jobs
+                API route for creating a new job to do analysis. This route accepts a JSON payload describing the job to be created\n"""
+    return help_user
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
