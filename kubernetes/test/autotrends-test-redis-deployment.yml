@@ -1,0 +1,29 @@
+---
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+   name: autotrends-test-redis-deployment
+   labels:
+     app: autotrends-test-redis-app
+     username: svv346
+     env: test
+ spec:
+   replicas: 1
+   selector:
+     matchLabels:
+       app: autotrends-test-redis-app
+   template:
+     metadata:
+       labels:
+         app: autotrends-test-redis-app
+     spec:
+       containers:
+         - name: redis-app
+           image: redis:7
+           volumeMounts:
+           - name: autotrends-test-auto-data
+             mountPath: "/data"
+       volumes:
+       - name: autotrends-test-auto-data
+         persistentVolumeClaim:
+           claimName: autotrends-test-auto-data

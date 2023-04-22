@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: svv346-test-flask-service
+  name: autotrends-test-flask-service
   labels:
     username: svv346
     env: test
 spec:
   type: ClusterIP
   selector:
-    app: svv346-test-flask-app
+    app: autotrends-test-flask-app
   ports:
-  - name: svv346-test-flask-app
+  - name: autotrends-test-flask-app
     port: 5000
     targetPort: 5000
