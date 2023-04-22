@@ -187,7 +187,7 @@ def image_func() -> bytes:
             plt.ylabel('Real-World CO2 (g/mi)')
             plt.xlabel('Year')
             plt.savefig('./co2_graph.png')
-            plt.show()
+            plt.clf()
             file_bytes = open('./co2_graph.png', 'rb').read()
             rd2.set('image0', file_bytes)
             return 'Auto Trends data image is loaded into Redis\n'
@@ -244,6 +244,7 @@ def disp_image(year: str) -> bytes:
             plt.xlabel('Weight (lbs)')
             plt.ylabel('Miles per Gallon')
             plt.savefig('./weight_mpg_plt_year.png')
+            plt.clf()
             file_bytes = open('./weight_mpg_plt_year.png', 'rb').read()
             # set the file bytes as a key in Redis
             rd2.set('plotimage', file_bytes)
@@ -300,6 +301,7 @@ def showPlot(year: str) -> bytes:
             plt.title('2021: MPG vs Vehicle Type')
             plt.legend()
             plt.savefig('./2021_MPGvType.png')
+            plt.clf()
             file_bytes = open('./2021_MPGvType.png', 'rb').read()
             # set the file bytes as a key in Redis
             rd2.set('plot', file_bytes)
