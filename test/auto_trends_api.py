@@ -20,7 +20,7 @@ def jobs_api():
           job = request.get_json(force=True)
       except Exception as e:
           return True, json.dumps({'status': "Error", 'message': 'Invalid JSON: {}.'.format(e)})
-      return json.dumps(add_job(job['start'], job['end']))
+      return json.dumps(add_job(job['start'], job['end'])) + '\n'
 
 @app.route('/data', methods=['POST','GET','DELETE'])
 def handle_data() -> list:
@@ -340,7 +340,22 @@ def download(jobid: str) -> bytes:
             f.write(rd3.hget('job.'+jobid, b'image'))
         return send_file(path, mimetype='image/png', as_attachment=True)
     else:
-        return 'CO2 Emissions by Vehicle Type is not loaded in redis yet'
+        return 'CO2 Emissions by Vehicle Type is not loaded in redis yet\n'
+
+@app.route('/status/<jobid>', methods=['GET'])
+def status(jobid: str) -> str:
+    """
+    This function returns the job status given the job ID
+
+    Args:
+        jobid (str): pseudo-random identifier for a job
+    Returns:
+        status (if method is GET): the status of the specific job
+    """
+    if rd3.exists('job.'+jobid):
+        return 'Status: ' + rd3.hget('job.'+jobid, b'status').decode() + '\n'
+    else:
+        return 'Invalid job id, job does not exist in the database\n'
 
 @app.route('/help', methods=['GET'])
 def get_help():
