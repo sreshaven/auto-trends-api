@@ -220,7 +220,6 @@ def disp_image(year: str) -> bytes:
     Returns:
         auto_img (bytes): (if method is GET) bytes object of the image for the data set
     """
-    years_list = get_years()
     if request.method == 'POST':
         mpg_list = []
         weight_list = []
@@ -230,17 +229,19 @@ def disp_image(year: str) -> bytes:
         if output_list == []:
             return 'there is no data, cannot generate plot\n'
         else:
+            years_list = get_years()
+            if year not in years_list:
+                return 'Invalid input, please choose a valid year from 1975 to 2021'
             for key in rd.keys():
-                yr = rd.hget(key,'Model Year')
-                if yr in years_list and yr.isdigit() and int(yr) == year:
-                    yr = float(yr)
+                yr = rd.hget(key, 'Model Year')
+                if yr.isdigit() and int(yr) == int(year):
                     mpg = rd.hget(key, 'Real-World MPG')
-                    if mpg != '-':
+                    weight = rd.hget(key, 'Weight (lbs)')
+                    if mpg != '-' and weight != '-':
                         mpg_list.append(float(mpg))
-                        weight = rd.hget(key, 'Weight (lbs)')
                         weight_list.append(float(weight))
-            plt.scatter(weight_list,mpg_list)
-            plt.title('Vehicle Weight vs Fuel Economy in 2021')
+            plt.scatter(weight_list, mpg_list)
+            plt.title('Vehicle Weight vs Fuel Economy in ' + year)
             plt.xlabel('Weight (lbs)')
             plt.ylabel('Miles per Gallon')
             plt.savefig('./weight_mpg_plt_year.png')
