@@ -30,7 +30,7 @@ def execute_job(jid):
                     years.append(int(car['Model Year']))
                 co2[car['Vehicle Type']].append(float(car['Real-World CO2 (g/mi)']))
         for key in co2:
-            plt.plot(years, co2[key], label = key)
+            plt.scatter(years, co2[key], label = key)
         plt.title('CO2 Emissions by Vehicle Type from '+str(start)+'-'+str(end))
         plt.ylabel('Real-World CO2 (g/mi)')
         plt.xlabel('Year')
