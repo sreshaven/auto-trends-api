@@ -347,6 +347,11 @@ Method = DELETE: The DELETE method for this route will delete the image from the
 ```
 Plot has been deleted
 ```
+#### Route: /jobs
+To do analysis, you can run the command `curl http://127.0.0.1:5000/jobs`. This will create a new job as a string. Below is an example output for `curl http://127.0.0.1:5000/jobs`:
+```
+ADD EXAMPLE OUTPUT HERE
+```
 
 #### Route: /download/<jobid\>
 To download the image from a specific job ID, you can run the command `curl http://127.0.0.1:5000/download/<jobid>` and replace \<jobID\> with the desired job ID. Below is an example output for `curl http://127.0.0.1:5000/download/<jobid>`:
