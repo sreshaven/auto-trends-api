@@ -14,7 +14,7 @@ def execute_job(jid):
     if len(jobs.rd.keys()) == 0:
         return 'Auto Trends data not loaded in Redis yet\n'
     else:
-        years = []
+        years = {}
         co2 = {}
         cars_list = []
         start = int(jobs.get_job_start(jid))
@@ -25,12 +25,13 @@ def execute_job(jid):
         for car in cars_list:
             if car['Vehicle Type'] not in co2:
                 co2[car['Vehicle Type']] = []
+            if car['Vehicle Type'] not in years:
+                years[car['Vehicle Type']] = []
             if car['Model Year'].isdigit() and start <= int(car['Model Year']) <= end:
-                if int(car['Model Year']) not in years:
-                    years.append(int(car['Model Year']))
+                years[car['Vehicle Type']].append(int(car['Model Year']))
                 co2[car['Vehicle Type']].append(float(car['Real-World CO2 (g/mi)']))
         for key in co2:
-            plt.scatter(years, co2[key], label = key)
+            plt.plot(np.array(years[key]), np.array(co2[key]), label = key)
         plt.title('CO2 Emissions by Vehicle Type from '+str(start)+'-'+str(end))
         plt.ylabel('Real-World CO2 (g/mi)')
         plt.xlabel('Year')
