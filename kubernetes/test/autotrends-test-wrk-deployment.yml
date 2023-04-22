@@ -4,23 +4,23 @@ kind: Deployment
 metadata:
   name: autotrends-test-wrk-deployment
   labels:
-    app: autotrends-test-flask-app
+    app: autotrends-test-worker
     username: svv346
     env: test
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: autotrends-test-flask-app
+      app: autotrends-test-worker
   template:
     metadata:
       labels:
-        app: autotrends-test-flask-app
+        app: autotrends-test-worker
     spec:
       containers:
-        - name: autotrends-test-flask-app
+        - name: autotrends-test-worker
           imagePullPolicy: Always
-          image: sreshaven/auto_trends_api:final
+          image: sreshaven/worker_api:final
           env:
           - name: REDIS_IP
             value: 10.233.15.94
