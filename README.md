@@ -53,7 +53,7 @@ In order to deploy the Flask container to a Kubernetes cluster, follow the instr
 While the Flask app is running (in the background or in another terminal on the same machine) use these examples to guide you in querying through the dataset.
 
 #### Route: /help
-To see all of the possible route and a description of each, you can run the command `curl http://127.0.0.1:5000/help`. There are a total of 13 routes. 
+To see all of the possible route and a description of each, you can run the command `curl http://127.0.0.1:5000/help`. There are a total of 14 routes. 
 
 #### Route: /data
 Method = POST: Use this route and set the method to POST to inject the auto trends data set into the Redis database that has started up. To do this, run the command `curl -X POST http://127.0.0.1:5000/data` which will return a message like the one below:
@@ -349,6 +349,11 @@ Plot has been deleted
 ```
 #### Route: /jobs
 To do analysis, you can run the command `curl http://127.0.0.1:5000/jobs`. This will create a new job as a string. Below is an example output for `curl http://127.0.0.1:5000/jobs`:
+```
+ADD EXAMPLE OUTPUT HERE
+```
+#### Route: /status/<jobid\>
+To see the status of a specified job ID, you can run the command `curl http://127.0.0.1:5000/status/<jobid\>`. Below is an example output for `curl http://127.0.0.1:5000/status/<jobid\>`:
 ```
 ADD EXAMPLE OUTPUT HERE
 ```
