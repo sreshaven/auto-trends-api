@@ -10,5 +10,6 @@ RUN pip install hotqueue==0.2.8
 ADD ./jobs.py /jobs.py
 ADD ./auto_trends_data.csv /auto_trends_data.csv
 ADD ./auto_trends_api.py /auto_trends_api.py
+ADD ./templates /templates
 
 CMD ["python", "/auto_trends_api.py"]

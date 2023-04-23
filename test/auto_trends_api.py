@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, render_template
 import os
 import requests
 import redis
@@ -9,6 +9,10 @@ import json
 from jobs import rd, rd2, rd3, add_job
 
 app = Flask(__name__)
+
+@app.route('/test',methods=['GET'])
+def test():
+    return render_template('index.html')
 
 @app.route('/jobs', methods=['POST'])
 def jobs_api():
