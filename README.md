@@ -18,15 +18,15 @@ In order to run the Flask app and query through the dataset using routes, there 
 
 1. Clone this repository to your local system using `git clone git@github.com:sreshaven/auto-trends-api.git` and change your current directory using `cd auto-trends-api/` 
 
-2. Next, get the `auto_trends_api` image in order to start a container for the Flask App. There are two methods to do this:
+2. Next, get the `auto_trends_api` image and `worker_api` image in order to start a container for the Flask App. There are two methods to do this:
 
-_Method #1_: Pull the existing image from Docker Hub using the command: `docker pull sreshaven/auto_trends_api:final`
+_Method #1_: Pull the existing images from Docker Hub using the commands: `docker pull sreshaven/auto_trends_api:final` and `docker pull sreshaven/worker_api:final`
 
-_Method #2_: Build the Docker image locally from the Dockerfile in the repository. To do this, first download the Auto Trends dataset located here: [https://www.epa.gov/automotive-trends/explore-automotive-trends-data#DetailedData](https://www.epa.gov/automotive-trends/explore-automotive-trends-data#DetailedData). Click on the blue button that says "Export Detailed Data by Manufacturer" (which is Table A-1 on the site) to download the file to your local system. Rename this file to `auto_trends_data.csv` and move this file to the homework08/ directory. In the homework08/ directory, use `docker build -t <username>/auto_trends_api:final .` and replace `<username>` with your username to build the image using the Dockerfile in the repository. In the docker-compose.yml file, change the line that says `image: sreshaven/auto_trends_api:final` by replacing `sreshaven` with your username.
+_Method #2_: Build the Docker image locally from the Dockerfile in the repository. To do this, first download the Auto Trends dataset located here: [https://www.epa.gov/automotive-trends/explore-automotive-trends-data#DetailedData](https://www.epa.gov/automotive-trends/explore-automotive-trends-data#DetailedData). Click on the blue button that says "Export Detailed Data by Manufacturer" (which is Table A-1 on the site) to download the file to your local system. Rename this file to `auto_trends_data.csv` and move this file to the auto-trends-api/src/ directory. In the auto-trends-api/ directory, use `docker build -f docker/Dockerfile.wrk -t <username>/worker_api .` and replace `<username>` with your username to build the worker image using the Dockerfile in the repository. Use `docker build -f docker/Dockerfile.api -t sreshaven/auto_trends_api:final .` and replace `<username>` with your username to build the flask app image. In the docker-compose.yml file, change the lines that say `image: sreshaven/auto_trends_api:final` and `image: sreshaven/worker_api:final` by replacing `sreshaven` with your username.
 
-3. Then, make a directory in the `auto-trends-api/` directory to which the Redis database can mount a volume to by using `mkdir data`.
+3. Then, make a directory in the `auto-trends-api/` directory to which the Redis database can mount a volume to by using `mkdir docker/data/`.
 
-4. Lastly, to start up the Flask app in detached mode using the Docker Compose file in the repository, run `docker-compose up -d`. 
+4. Lastly, to start up the Flask app in detached mode using the Docker Compose file in the repository, run `docker-compose -f docker/docker-compose.yml up -d`. 
 
 Now, you can use the Flask app to inject the dataset into a Redis database and query the dataset using the routes and examples described in the section below.
 
@@ -36,24 +36,51 @@ In order to deploy the Flask container to a Kubernetes cluster, follow the instr
 
 1. First clone this repository to your system that has access to the Kubernetes API for the cluster using `git clone git@github.com:sreshaven/auto-trends-api.git` and change your current directory using `cd auto-trends-api/` 
 
-2. If you built your own Docker image locally following Method #2 in the "Run Instructions" steps above and to use this Docker image in a Kubernetes cluster, run `docker login` in the system that you built your Docker image on to login to your Docker Hub account and `docker push <username>/auto_trends_api:final` to push your built image to Docker Hub. Now in the svv346-test-flask-deployment.yml file in the repo, change the line that says `image: sreshaven/auto_trends_api:final` by replacing `sreshaven` with your username. 
+2. If you built your own Docker image locally following Method #2 in the "Run Instructions" steps above and to use this Docker image in a Kubernetes cluster, run `docker login` in the system that you built your Docker image on to login to your Docker Hub account and `docker push <username>/auto_trends_api:final` and `docker push <username>/worker_api:final` to push your built images to Docker Hub. Now in the autotrends-prod-flask-deployment.yml and autotrends-prod-wrk-deployment.yml files in the repo under kubernetes/prod/, change the line that says `image: sreshaven/auto_trends_api:final` and `image: sreshaven/worker_api:final` respectively by replacing `sreshaven` with your username. 
 
-3. To set up the PVC to save the Redis data from the Flask app, change directory to the kubernetes folder by running `cd kubernetes/` and run `kubectl apply -f svv346-test-redis-pvc.yml`.
+3. To set up the PVC to save the Redis data from the Flask app, change directory to the kubernetes/prod/ folder by running `cd kubernetes/prod/` and run `kubectl apply -f autotrends-prod-redis-pvc.yml`.
 
-4. Next, to create a deployment for the Redis database so that the desired state for Redis is always met, run `kubectl apply -f svv346-test-redis-deployment.yml`.
+4. Next, to create a deployment for the Redis database so that the desired state for Redis is always met, run `kubectl apply -f autotrends-prod-redis-deployment.yml`.
 
-5. The last step for the Redis set up is to start the service so that there is a persistent IP address that you can use to talk to Redis. To do this, run `kubectl apply -f svv346-test-redis-service.yml`. Now to get the IP address for this service, run `kubectl get services` and copy the IP address for the redis service. Now in the `svv346-test-flask-deployment.yml` file, change the line that says `value: 10.233.15.94` by replacing `10.233.15.94` with the copied IP address for your service.
+5. The last step for the Redis set up is to start the service so that there is a persistent IP address that you can use to talk to Redis. To do this, run `kubectl apply -f autotrends-prod-redis-service.yml`. 
 
-6. To set up the deployment for the Flask app on the Kubernetes cluster, run `kubectl apply -f svv346-test-flask-deployment.yml`.
+6. To set up the deployment for the worker on the Kubernetes cluster to help with analysis jobs, run `kubectl apply -f autotrends-prod-wrk-deployment.yml`.
 
-7. Lastly, to get a persistent IP address for the Flask app with a service, run `kubectl apply -f svv346-test-flask-service.yml`. To use this IP address to run the Flask app routes, run `kubectl get services` and copy the IP address for the flask service. To use the Flask app routes, exec into a Python debug container and use the examples below to guide you. When running curl commands, replace `127.0.0.1` with the IP address for your Flask service.
+7. To set up the deployment for the Flask app on the Kubernetes cluster, run `kubectl apply -f autotrends-prod-flask-deployment.yml`.
+
+8. Lastly, to get a persistent IP address for the Flask app with a service, run `kubectl apply -f autotrends-prod-flask-service.yml`. To use this IP address to run the Flask app routes, run `kubectl get services` and copy the IP address for the flask service. Exec into a Python debug container and use the examples below to guide you. When running curl commands, replace `127.0.0.1` with the IP address for your Flask service.
+
+9. In order to make your Flask API available on the public internet, first create a nodeport service object that points to your Flask deployment by running `kubectl apply -f autotrends-prod-flask-nodeport.yml`. Next, run `kubectl get services` and under PORT(S) for the nodeport service, copy the value between `5000:` and `/TCP`. Now, in the autotrends-prod-flask-ingress.yml file, in the line that says `number: 30195`, replace `30195` with the value that you just copied. Additionally, in the line that says `- host: "otg.coe332.tacc.cloud"` replace `otg` with the subdomain name that you would like to use. Lastly to apply these changes and get public access with the host name in the file, run `kubectl apply -f autotrends-prod-flask-ingress.yml`. Now you can use the examples to guide you in using the API routes and when running curl commands, replace `127.0.0.1` with your host name.
 
 ### Routes and Examples
 
-While the Flask app is running (in the background or in another terminal on the same machine) use these examples to guide you in querying through the dataset.
+While the Flask app is running (in the background or in another terminal on the same machine), use these examples to guide you in querying through the dataset.
+
+> **_Note:_** To use the domain that is available on the internet with the examples below, replace `http://127.0.0.1:5000` with `otg.coe332.tacc.cloud`
 
 #### Route: /help
-To see all of the possible route and a description of each, you can run the command `curl http://127.0.0.1:5000/help`. There are a total of 14 routes. 
+To see all of the possible route and a description of each, you can run the command `curl http://127.0.0.1:5000/help`. There are a total of 14 routes. Below is a snippet of the output:
+```
+Try the following routes:
+            /help returns all the routes and their purpose
+            /data
+                -X GET returns the entire data set (hundreds of dictionaries)
+                -X POST adds the data to the redis database
+                -X DELETE deletes all the data from the redis database
+            /years
+                returns a list of all the years recorded in the dataset
+            /years/<year>
+                returns a list of all the data from the specified year
+            /manufacturers
+                returns a list of the manufacturers currently in redis for the Auto Trends Database
+            /manufacturers/<manufacturer>
+                returns a list with all cars from that manufacturer if found in the Auto Trends database
+            /manufacturer/<manufacturer>/years
+                returns a list of the years where there is data for a specific manufacturer
+            /manufacturer/<manufacturer>/years/<year>
+                returns a list for the data for the specified manufacturer and year if found in the Auto Trends database route
+...
+``` 
 
 #### Route: /data
 Method = POST: Use this route and set the method to POST to inject the auto trends data set into the Redis database that has started up. To do this, run the command `curl -X POST http://127.0.0.1:5000/data` which will return a message like the one below:
@@ -298,7 +325,7 @@ To get the data points for a specific manufacturer during a certain year, run th
 #### Route: /co2_year_plot
 Method = POST: Use this route to create and load an image based on the Auto Trends Dataset into Redis. This image is a graph of the average CO2 emissions per year plotted over time. To load the image into Redis, run `curl -X POST http://127.0.0.1:5000/co2_year_plot` which will return a message like the one below:
 ```
-Auto Trends data image is loaded into Redis
+Image is loaded into Redis
 ```
 
 Method = GET: This route can be used also be used to get the image locally if it is present in the database by changing the method to GET. To do this, run `curl -X GET http://127.0.0.1:5000/co2_year_plot --output filename.png` and replace `filename` with a name that you want. This will return the image of the graph in redis to the directory you are currently in and will return an output like below:
@@ -308,15 +335,15 @@ Method = GET: This route can be used also be used to get the image locally if it
 100 26827  100 26827    0     0  3274k      0 --:--:-- --:--:-- --:--:-- 3274k
 ```
 
-Method = DELETE: The DELETE method for this route will delete the image from the Redis database. To do this, run `curl -X DELETE http://127.0.0.1:5000/co2_year_plot` and below is an example of the output message is the image is found in the database and deleted:
+Method = DELETE: The DELETE method for this route will delete the image from the Redis database. To do this, run `curl -X DELETE http://127.0.0.1:5000/co2_year_plot` and below is an example of the output message if the image is found in the database and deleted:
 ```
 Auto Trends data image has been deleted from Redis
 ```
 
-#### Route: /weight_mpg_plot/<year>
-Method = POST: Use this route to create and load an image based on the Auto Trends Dataset into Redis. This image is a graph that compares a vehicles weight to its fuel efficiency from the year specified by the user. To load the image into Redis, run `curl -X POST http://127.0.0.1:5000/weight_mpg_plot/<year>` which will return a message like the one below:
+#### Route: /weight_mpg_plot/\<year\>
+Method = POST: Use this route to create and load an image based on the Auto Trends Dataset into Redis. This image is a graph that compares a vehicles weight to its fuel efficiency from the year specified by the user. To load the image into Redis, run `curl -X POST http://127.0.0.1:5000/weight_mpg_plot/<year>` and replace \<year\> with a specific year between 1975 to 2021 which will return a message like the one below:
 ```
-image has been loaded to redis
+Image has been loaded to Redis
 ```
 
 Method = GET: This route can be used also be used to get the image locally if it is present in the database by changing the method to GET. To do this, run `curl -X GET http://127.0.0.1:5000/weight_mpg_plot/<year> --output filename.png` and replace `filename` with a name that you want. This will return the image of the graph in redis to the directory you are currently in and will return an output like below:
@@ -326,14 +353,15 @@ Method = GET: This route can be used also be used to get the image locally if it
 100 26827  100 26827    0     0  3274k      0 --:--:-- --:--:-- --:--:-- 3274k
 ```
 
-Method = DELETE: The DELETE method for this route will delete the image from the Redis database. To do this, run `curl -X DELETE http://127.0.0.1:5000/weight_mpg_plot/<year>` and below is an example of the output message is the image is found in the database and deleted:
+Method = DELETE: The DELETE method for this route will delete the image from the Redis database. To do this, run `curl -X DELETE http://127.0.0.1:5000/weight_mpg_plot/<year>` and below is an example of the output message if the image is found in the database and deleted:
 ```
-database is empty, nothing to flush
+The image has been deleted
 ```
-#### Route: /vehicleType_mpg_plot/<year>
-Method = POST: Use this route to create and load an image based on the Auto Trends Dataset into Redis. This image is a graph that compares vehicle type to its fuel efficiency from the year specified by the user. To load the image into Redis, run `curl -X POST http://127.0.0.1:5000/vehicleType_mpg_plot/<year>` which will return a message like the one below:
+
+#### Route: /vehicleType_mpg_plot/\<year\>
+Method = POST: Use this route to create and load an image based on the Auto Trends Dataset into Redis. This image is a graph that compares vehicle type to its fuel efficiency from the year specified by the user. To load the image into Redis, run `curl -X POST http://127.0.0.1:5000/vehicleType_mpg_plot/<year>` and replace \<year\> with a specific year between 1975 to 2021 which will return a message like the one below:
 ```
-Plot is loaded.
+Plot is loaded into Redis.
 ```
 
 Method = GET: This route can be used also be used to get the image locally if it is present in the database by changing the method to GET. To do this, run `curl -X GET http://127.0.0.1:5000//vehicleType_mpg_plot/<year> --output filename.png` and replace `filename` with a name that you want. This will return the image of the graph in redis to the directory you are currently in and will return an output like below:
@@ -347,19 +375,23 @@ Method = DELETE: The DELETE method for this route will delete the image from the
 ```
 Plot has been deleted
 ```
+
 #### Route: /jobs
-To do analysis, you can run the command `curl http://127.0.0.1:5000/jobs`. This will create a new job as a string. Below is an example output for `curl http://127.0.0.1:5000/jobs`:
+To submit a job for analysis, you can run the command `curl http://127.0.0.1:5000/jobs -X POST -H "Content-Type: application/json" -d '{"start": "<start>", "end": "<end>"}'` and replace \<start\> and \<end\> with years between 1975 and 2021. This will return a JSON object with information about your job including the job ID. Below is an example output for `curl http://127.0.0.1:5000/jobs -X POST -H "Content-Type: application/json" -d '{"start": "1975", "end": "2021"}'`:
 ```
-ADD EXAMPLE OUTPUT HERE
-```
-#### Route: /status/<jobid\>
-To see the status of a specified job ID, you can run the command `curl http://127.0.0.1:5000/status/<jobid\>`. Below is an example output for `curl http://127.0.0.1:5000/status/<jobid\>`:
-```
-ADD EXAMPLE OUTPUT HERE
+{"id": "8c556a8b-9e2c-4dd3-8dbf-bf667826ca87", "status": "submitted", "start": "1975", "end": "2021"}
 ```
 
-#### Route: /download/<jobid\>
-To download the image from a specific job ID, you can run the command `curl http://127.0.0.1:5000/download/<jobid>` and replace \<jobID\> with the desired job ID. Below is an example output for `curl http://127.0.0.1:5000/download/<jobid>`:
+#### Route: /status/\<jobid\>
+To see the status of a specified job ID, you can run the command `curl http://127.0.0.1:5000/status/<jobid>` and replace \<jobid\> with the specific job ID for your job. Below is an example output for `curl http://127.0.0.1:5000/status/8c556a8b-9e2c-4dd3-8dbf-bf667826ca87`:
 ```
-ADD EXAMPLE OUTPUT HERE
+Status: complete
+```
+
+#### Route: /download/\<jobid\>
+To download the image from a specific job ID, you can run the command `curl http://127.0.0.1:5000/download/<jobid> --output filename.png` and replace \<jobid\> with the desired job ID and filename with the name you would like for the output file. Below is an example output for `curl http://127.0.0.1:5000/download/8c556a8b-9e2c-4dd3-8dbf-bf667826ca87 --output image.png`:
+```
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 63626  100 63626    0     0  59519      0  0:00:01  0:00:01 --:--:-- 59519
 ```
