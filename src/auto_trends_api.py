@@ -1,25 +1,36 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, render_template
 import os
 import requests
 import redis
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-import jobs
+import json
+from jobs import rd, rd2, rd3, add_job
 
 app = Flask(__name__)
 
 @app.route('/jobs', methods=['POST'])
 def jobs_api():
       """
-      API route for creating a new job to do some analysis. This route accepts a JSON payload
-      describing the job to be created.
+      Creates a new job to do some analysis, accepts a JSON payload describing the job to be created
+
+      Args:
+          N/A
+      Returns:
+          output (dict): if valid JSON input is entered, returns JSON output with job information
       """
       try:
           job = request.get_json(force=True)
+          if not 1975 <= int(job['start']) <= 2021:
+              return 'Invalid start date, please enter a valid year between 1975 and 2021\n'
+          if not 1975 <= int(job['end']) <= 2021:
+              return 'Invalid end date, please enter a valid year between 1975 and 2021\n'
+          if len(rd.keys()) == 0:
+            return 'Auto Trends data not loaded in Redis yet\n'
       except Exception as e:
           return True, json.dumps({'status': "Error", 'message': 'Invalid JSON: {}.'.format(e)})
-      return json.dumps(jobs.add_job(job['start'], job['end']))
+      return json.dumps(add_job(job['start'], job['end'])) + '\n'
 
 @app.route('/data', methods=['POST','GET','DELETE'])
 def handle_data() -> list:
@@ -29,8 +40,7 @@ def handle_data() -> list:
     If method is DELETE, clears the data in redis and returns message
 
     Args:
-        no arguments
-
+        N/A
     Returns:
         auto_data (list): (if method is GET) list of dictionaries of the cars data in redis
     """
@@ -59,8 +69,7 @@ def get_years() -> list:
     Returns a list of the years currently in redis for the Auto Trends database for the '/years' route
     
     Args:
-        no arguments
-    
+        N/A
     Returns:
         years_list (list): list of strings of the Model Year
     """
@@ -78,7 +87,6 @@ def get_year_info(year: str) -> list:
 
     Args:
         year (str): the string of a Model Year
-
     Returns:
         year_cars (list): list with cars from the specified year, if year not found, will be empty list
     """
@@ -96,8 +104,7 @@ def get_manufacturers() -> list:
     Returns a list of the manufacturers currently in redis for the Auto Trends database for the '/manufacturers' route
 
     Args:
-        no arguments
-
+        N/A
     Returns:
         manufacturers_list (list): list of strings of the Manufacturer
     """
@@ -115,7 +122,6 @@ def get_manufacturer_info(manufacturer: str) -> list:
 
     Args:
         manufacturer (str): the string of a Manufacturer
-
     Returns:
         manufacturer_cars (list): list with cars from the specified manufacturer, if manufacturer not found, will be empty list
     """
@@ -134,7 +140,6 @@ def manu_years(manufacturer: str) -> list:
 
     Args:
         manufacturer (str): the string of a Manufacturer
-
     Returns:
         years_list (list): list with years from the specified manufacturer, if manufacturer not found, will be empty list
     """
@@ -153,7 +158,6 @@ def manu_years_data(manufacturer: str, year: str) -> list:
     Args:
         manufacturer (str): the string of a Manufacturer
         year (str): the string of the Model Year
-
     Returns:
         data_list (list): list with data for the year from the specified manufacturer, if manufacturer or year not found, will be empty list
     """
@@ -164,7 +168,7 @@ def manu_years_data(manufacturer: str, year: str) -> list:
             data_list.append(car)
     return data_list
 
-@app.route('/image', methods=['GET', 'POST', 'DELETE'])
+@app.route('/co2_year_plot', methods=['GET', 'POST', 'DELETE'])
 def image_func() -> bytes:
     """
     If method is POST, loads a simple plot of the auto trends data into redis and returns message
@@ -172,167 +176,244 @@ def image_func() -> bytes:
     If method is DELETE, clears the image in redis and returns message
 
     Args:
-        no arguments
-
+        N/A
     Returns:
         auto_img (bytes): (if method is GET) bytes object of the image for the data set
     """
     if request.method == 'POST':
         if len(rd.keys()) == 0:
-            return 'Auto Trends data not loaded in Redis yet\n'
+            return 'Auto Trends data has not been loaded in Redis yet\n'
         else:
             cars_list = get_manufacturer_info('All')
             years = []
             co2 = []
             for car in cars_list:
                 if car['Vehicle Type'] == 'All':
-                    if car['Model Year'].isdigit():
+                    if car['Model Year'].isdigit() and 1975 <= int(car['Model Year']) <= 2021:
                         years.append(int(car['Model Year']))
-                    else:
-                        years.append(2022)
-                    co2.append(float(car['Real-World CO2 (g/mi)']))
+                        co2.append(float(car['Real-World CO2 (g/mi)']))
             plt.scatter(years, co2)
-            plt.title('Average Vehicle CO2 Emissions from 1975-2022')
+            plt.title('Average Vehicle CO2 Emissions from 1975-2021')
             plt.ylabel('Real-World CO2 (g/mi)')
             plt.xlabel('Year')
             plt.savefig('./co2_graph.png')
-            plt.show()
+            plt.clf()
             file_bytes = open('./co2_graph.png', 'rb').read()
-            rd2.set('image', file_bytes)
-            return 'Auto Trends data image is loaded into Redis\n'
+            rd2.set('image0', file_bytes)
+            return 'Image is loaded into Redis\n'
     elif request.method == 'GET':
-        if b'image' not in rd2.keys():
-            return 'Image not found or has not been loaded yet\n'
+        if b'image0' not in rd2.keys():
+            return 'Image is not in the database, please run the POST method first\n'
         else:
             path = './getimage.png'
             with open(path, 'wb') as f:
-                f.write(rd2.get('image'))
+                f.write(rd2.get('image0'))
             return send_file(path, mimetype='image/png', as_attachment=True)
     elif request.method == 'DELETE':
-        if b'image' not in rd2.keys():
-            return 'Image not found or has not been loaded yet\n'
+        if b'image0' not in rd2.keys():
+            return 'Image is not in the database, please run the POST method first\n'
         else:
-            rd2.delete('image')
+            rd2.delete('image0')
             return 'Auto Trends data image has been deleted from Redis\n'
     else:
         return 'The method you tried does not work\n'
 
 
-@app.route('/weight_mpg_plot', methods=['GET', 'POST', 'DELETE'])
-def disp_image():
+@app.route('/weight_mpg_plot/<year>', methods=['GET', 'POST', 'DELETE'])
+def disp_image(year: str) -> bytes:
     """
-    This function downloads an image of a plot that compares a vehicles weight to its fuel efficiency from the year 2021
-    Args: there are no arguments
-    Returns: send_file(path, mimetype='image/png', as_attachment=True) (png image): png image of plot downloaded to redis
+    Downloads an image of a plot that compares a vehicles weight to its fuel efficiency from the year specified by the user
+    
+    Args:
+        manufacturer (str): the string of a Manufacturer
+        year (str): the string of the Model Year
+    Returns:
+        auto_img (bytes): (if method is GET) bytes object of the image for the data set
     """
     if request.method == 'POST':
-        mpg_list=[]
-        weight_list=[]
+        mpg_list = []
+        weight_list = []
         output_list = []
         for item in rd.keys():
             output_list.append(rd.hgetall(item))
         if output_list == []:
-            return 'there is no data, cannot generate plot\n'
-            exit()
+            return 'Auto Trends data is not loaded into Redis yet\n'
         else:
-            for item in list_of_dict:
-                key = f"{item['Manufacturer']}:{item['Model Year']}:{item['Vehicle Type']}"
-                yr = rd.hget(key,'Model Year')
-                if yr == '2021':
-                    yr = float(yr)
+            years_list = get_years()
+            if year not in years_list and not year.isdigit():
+                return 'Invalid input, please choose a valid year from 1975 to 2021\n'
+            for key in rd.keys():
+                yr = rd.hget(key, 'Model Year')
+                if yr.isdigit() and int(yr) == int(year):
                     mpg = rd.hget(key, 'Real-World MPG')
-                    if mpg != '-':
+                    weight = rd.hget(key, 'Weight (lbs)')
+                    if mpg != '-' and weight != '-':
                         mpg_list.append(float(mpg))
-                        weight = rd.hget(key, 'Weight (lbs)')
                         weight_list.append(float(weight))
-            plt.scatter(weight_list,mpg_list)
-            plt.title('Vehicle Weight vs Fuel Economy in 2021')
+            plt.scatter(weight_list, mpg_list)
+            plt.title('Vehicle Weight vs Fuel Economy in ' + year)
             plt.xlabel('Weight (lbs)')
             plt.ylabel('Miles per Gallon')
-            plt.savefig('./weight_mpg_plt_2021.png')
-            file_bytes = open('./weight_mpg_plt_2021.png', 'rb').read()
-# set the file bytes as a key in Redis
-            rd1.set('plotimage', file_bytes)
-            return 'image has been loaded to redis\n'
-
+            plt.savefig('./weight_mpg_plt_year.png')
+            plt.clf()
+            file_bytes = open('./weight_mpg_plt_year.png', 'rb').read()
+            # set the file bytes as a key in Redis
+            rd2.set('plotimage', file_bytes)
+            return 'Image has been loaded to Redis\n'
     elif request.method == 'GET':
-        #check if image is in database
+        # check if image is in database
         # if so, return image
-        if rd1.exists('plotimage'):
-            path='./weight_mpg_plt_2021.png'
+        if rd2.exists('plotimage'):
+            path='./weight_mpg_plt_year.png'
             with open(path,'wb') as f:
-                f.write(rd1.get('plotimage'))
+                f.write(rd2.get('plotimage'))
             return send_file(path, mimetype='image/png', as_attachment=True)
         else:
-            return 'image is not in database\n'
-
+            return 'Image is not in the database, please run the POST method first\n'
     elif request.method == 'DELETE':
         # delete image from redis
-        if rd1.exists('plotimage'):
-            rd1.flushdb()
-            return 'image deleted\n'
+        if rd2.exists('plotimage'):
+            rd2.delete('plotimage')
+            return 'The image has been deleted\n'
         else:
-            return 'database is empty, nothing to flush\n'
-@app.route('/vehicleType_mpg_plot', methods=['GET'])
-def showPlot():
+            return 'Image is not in the database, please run the POST method first\n'
+
+@app.route('/vehicleType_mpg_plot/<year>', methods=['POST','GET','DELETE'])
+def showPlot(year: str) -> bytes:
     """
-    This function downloads an image of a plot that compares a vehicles type to its fuel efficiency from the year 2021
+    If method is POST, loads a simple plot of the auto trends data into redis and returns message
+    If method is GET, returns image from redis
+    If method is DELETE, clears the image in redis and returns message
+
     Args:
         N/A
     Returns:
-        Returns a plot of the 2021 MPG vs car type.
+        auto_img (bytes): (if method is GET) bytes object of the image for the data set
     """
+    years_list = get_years()
     if request.method == 'POST':
         if len(rd.keys()) == 0:
-            return 'No data in db. Post data to get info\n'
+            return 'Auto Trends data is not loaded into Redis yet\n'
         else:
             x = []
-            y = []    
-
-            allYears = []
+            y = []
+            if year not in years_list and not year.isdigit():
+                return 'Invalid input, please enter a valid year from 1975 to 2021\n'
             for key in rd.keys():
                 carDict = rd.hgetall(key)
-                allYears.append(carDict['Model Year'])
-
-            if allYears == '2021':
-                year = float(allYears)
-                mpg = rd.hget(key, 'Real-World MPG')
-                carType = rd.hget(key, 'Vehicle Type')
-                if mpg != '-':
-                    x.append(carType)
-                    y.append(float(mpg))
-                    
+                yr = carDict['Model Year']
+                if carDict['Manufacturer'] == 'All' and yr.isdigit() and int(yr) == int(year):
+                    mpg = carDict['Real-World MPG']
+                    carType = carDict['Vehicle Type']
+                    if mpg != '-':
+                        x.append(carType)
+                        y.append(float(mpg))
             plt.bar(x, y, color = 'g', width = 0.72, label = "MPG")
             plt.xlabel('Vehicle Type')
             plt.ylabel('MPG')
-            plt.title('2021: MPG vs Vehicle Type')
+            plt.title(year + ': MPG vs Vehicle Type')
             plt.legend()
-            plt.savefig('./data/2021_MPGvType.png')
-            file_bytes = open('./data/2021_MPGvType.png', 'rb').read()
+            plt.savefig('./2021_MPGvType.png')
+            plt.clf()
+            file_bytes = open('./2021_MPGvType.png', 'rb').read()
             # set the file bytes as a key in Redis
-            rd1.set('plot', file_bytes)
-            if len(file_bytes) == 0:
-                return 'No data in db. Post data to get info\n'
-            else:
-                return 'Plot is loaded.'
-
+            rd2.set('plot', file_bytes)
+            return 'Plot is loaded into Redis.\n'
     elif request.method == 'GET':
-        if redis.exists('plot'):
-            path = './data/2021_MPGvType.png'
+        if rd2.exists('plot'):
+            path = './2021_MPGvType.png'
             with open(path, 'wb') as f:
-            #get the image based on the 'plot' and write that binary stream to the
-            #file path
-                f.write(rd1.get('plot'))
+                f.write(rd2.get('plot'))
             return send_file(path, mimetype='image/png', as_attachment=True)
-        else: 
-            return 'Plot not found\n'
-    
+        else:
+            return 'Image is not in the database, please run the POST method first\n'
     elif request.method == 'DELETE':
-        if rd1.exists('plot'):
-            rd1.flushdb()
+        if rd2.exists('plot'):
+            rd2.delete('plot')
             return 'Plot has been deleted\n'
         else:
-            return 'The method you tried does not work. DB already empty\n'
+            return 'Image is not in the database, please run the POST method first\n'
+
+@app.route('/download/<jobid>', methods=['GET'])
+def download(jobid: str) -> bytes:
+    """
+    Downloads an image that was generated by the worker from Redis given the job ID
+
+    Args:
+        jobid (str): pseudo-random identifier for a job
+    Returns:
+        auto_img (bytes): (if method is GET) bytes object of the image for the data set
+    """
+    if rd3.exists('job.'+jobid) and b'image' in rd3.hgetall('job.'+jobid):
+        path = './{jobid}.png'
+        with open(path, 'wb') as f:
+            f.write(rd3.hget('job.'+jobid, b'image'))
+        return send_file(path, mimetype='image/png', as_attachment=True)
+    else:
+        return 'Please enter a valid job id\n'
+
+@app.route('/status/<jobid>', methods=['GET'])
+def status(jobid: str) -> str:
+    """
+    Returns the job status given the job ID
+
+    Args:
+        jobid (str): pseudo-random identifier for a job
+    Returns:
+        status (if method is GET): the status of the specific job
+    """
+    if rd3.exists('job.'+jobid):
+        return 'Status: ' + rd3.hget('job.'+jobid, b'status').decode() + '\n'
+    else:
+        return 'Please enter a valid job id\n'
+
+@app.route('/help', methods=['GET'])
+def get_help():
+    """
+    Returns all the available routes to the user
+    
+    Args: 
+        N/A
+    Returns:
+        help_user (str): String of all the available routes to curl
+    """
+    help_user = """Try the following routes: 
+            /help returns all the routes and their purpose
+            /data 
+                -X GET returns the entire data set (hundreds of dictionaries)
+                -X POST adds the data to the redis database
+                -X DELETE deletes all the data from the redis database
+            /years
+                returns a list of all the years recorded in the dataset
+            /years/<year>
+                returns a list of all the data from the specified year
+            /manufacturers
+                returns a list of the manufacturers currently in redis for the Auto Trends Database
+            /manufacturers/<manufacturer>
+                returns a list with all cars from that manufacturer if found in the Auto Trends database
+            /manufacturer/<manufacturer>/years
+                returns a list of the years where there is data for a specific manufacturer
+            /manufacturer/<manufacturer>/years/<year>
+                returns a list for the data for the specified manufacturer and year if found in the Auto Trends database route
+            /co2_year_plot
+                -X POST loads a plot of the total co2 emissions for a user specified range of years
+                -X GET <host>/co2_year_plot --output output.png returns a plot of total co2 emissions for a range of years to redis data base
+                -X DELETE deletes the image from the redis data base
+            /weight_mpg_plot/<year>
+                -X POST loads a plot of the weight vs fuel economy of every vehicle for a user specified year
+                -X GET <host>/weight_mpg_plot/<year> --output output.png returns a plot of weight vs fuel economy to redis data base
+                -X DELETE deletes the image from the redis data base
+            /vehicleType_mpg_plot/<year>
+                -X POST loads a plot of the weight vs fuel economy of every vehicle for a user specified year
+                -X GET <host>/vehicleType_mpg_plot/<year> --output output.png returns a plot of weight vs fuel economy to redis data base
+                -X DELETE deletes the image from the redis data base
+            /download/<jobid>
+                downloads an image that was generated by the worker from Redis given the job ID
+            /jobs
+                API route for creating a new job to do analysis. This route accepts a JSON payload describing the job to be created
+            /status/<jobid>
+                returns the status of the specified job id\n"""
+    return help_user
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

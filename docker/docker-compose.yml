@@ -13,11 +13,20 @@ services:
     flask-app:
         build:
             context: ./
-            dockerfile: ./Dockerfile
+            dockerfile: ./Dockerfile.api
         depends_on:
             - redis-db
-        image: sreshaven/auto_trends_api:jobs
+        image: sreshaven/auto_trends_api:final
         ports:
             - 5000:5000
+        environment:
+            - REDIS_IP=redis-db
+    worker-app:
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.wrk
+        depends_on:
+            - redis-db
+        image: sreshaven/worker_api:final
         environment:
             - REDIS_IP=redis-db
