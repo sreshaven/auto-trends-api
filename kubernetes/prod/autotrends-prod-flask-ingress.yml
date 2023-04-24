@@ -17,4 +17,4 @@ spec:
             service:
               name: flaskprod-service-nodeport
               port:
-                  number: 31343
+                  number: 30195

@@ -23,7 +23,7 @@ spec:
           image: sreshaven/auto_trends_api:final
           env:
           - name: REDIS_IP
-            value: 10.233.15.94
+            value: autotrends-prod-redis-service
           ports:
           - name: http
             containerPort: 5000
