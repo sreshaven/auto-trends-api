@@ -10,9 +10,9 @@ The EPA and NHTSA (National Highway Traffic Safety Administration) collects data
 
 ## Flask App
 
-The Auto Trends Flask App, located in the `auto_trends_api.py`, helps with processing the Auto Trends data set and adding it into a Redis database so that the data is preserved beyond the lifetime of the application containers. The Flask App also allows the user to query the dataset based on year or manufacturer to get more specific data to help save time in investigating efforts since the data set is so large. The Flask App is also containerized using Docker to allow for more portablility annd easier access to users.
+The Auto Trends Flask App, located in `src/auto_trends_api.py`, helps with processing the Auto Trends data set and adding it into a Redis database so that the data is preserved beyond the lifetime of the application containers. The Flask App also allows the user to query the dataset based on year or manufacturer to get more specific data to help save time in investigating efforts since the data set is so large. With the help of certain routes, you can also create plots using the Auto Trends data set to learn more about the relationship between specific variables and submit a job to the worker to complete longer analysis work. The Flask App is also containerized using Docker to allow for more portablility annd easier access to users.
 
-### Run Instructions
+### Run Instructions - Docker
 
 In order to run the Flask app and query through the dataset using routes, there are a few steps to the process:
 
