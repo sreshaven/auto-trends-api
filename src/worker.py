@@ -37,6 +37,7 @@ def execute_job(jid):
         plt.xlabel('Year')
         plt.legend()
         plt.savefig('./output_img2.png')
+        plt.clf()
         file_bytes = open('./output_img2.png', 'rb').read()
         # set the file bytes as a key in Redis
         jobs.rd2.set('plotimage2', file_bytes)
